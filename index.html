@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobile Doctor Repair Status</title>
+    <meta name="description" content="Track your mobile device repair status with Mobile Doctor's real-time tracker. Enter your repair ID to get instant updates.">
+    <link rel="icon" type="image/png" href="/favicon.png">
+
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self';
+        script-src 'self' https://cdn.tailwindcss.com https://www.gstatic.com https://fonts.gstatic.com;
+        style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://fonts.googleapis.com;
+        img-src 'self' data:;
+        font-src 'self' https://fonts.gstatic.com;
+        connect-src 'self' https://mobile-doctor-repair-tracker.firebaseio.com wss://*.firebaseio.com;
+    ">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="min-h-screen flex flex-col items-center py-10 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-blue-50 to-purple-50 text-gray-800">
+
+    <div id="loading-spinner" class="fixed inset-0 bg-gray-800 bg-opacity-75 flex flex-col items-center justify-center z-[10001] hidden">
+        <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500 mb-4"></div>
+        <p class="text-white text-lg font-semibold" id="loading-message">Connecting to Mobile Doctor Database...</p>
+    </div>
+
+    <div id="customMessageBox" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-[10000]">
+        <div class="bg-white p-8 rounded-xl shadow-2xl max-w-sm w-full text-center transform transition-all duration-300 scale-100">
+            <p id="messageBoxContent" class="text-lg font-semibold mb-6 text-gray-800"></p>
+            <button id="messageBoxCloseButton" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 transition-colors duration-200">OK</button>
+        </div>
+    </div>
+
+    <header class="w-full max-w-4xl bg-white rounded-xl shadow-lg p-6 mb-8 text-center">
+        <h1 class="text-4xl font-extrabold text-blue-700 mb-2">
+            <span class="text-5xl mr-2">📱</span>Mobile Doctor Repair Tracker
+        </h1>
+        <p class="text-lg text-gray-600">Your device's health, tracked in real-time.</p>
+    </header>
+
+    <main class="w-full max-w-4xl">
+        <section id="customer-view" class="bg-white rounded-xl shadow-lg p-8 mb-8">
+            <h2 class="text-3xl font-bold text-center text-blue-600 mb-6">Check Repair Status</h2>
+            <div class="flex flex-col sm:flex-row gap-4 mb-6">
+                <input
+                    type="text"
+                    id="repairIdInput"
+                    placeholder="Enter Your Repair ID"
+                    class="flex-grow p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200"
+                />
+                <button
+                    id="checkStatusButton"
+                    class="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold shadow-md hover:bg-blue-700 transition-colors duration-200 flex items-center justify-center"
+                >
+                    Check Status
+                </button>
+            </div>
+
+            <div id="repairStatusDisplay" class="hidden bg-blue-50 p-6 rounded-lg border border-blue-200 text-center animate-fadeIn">
+                <h3 id="displayDeviceName" class="text-2xl font-bold text-blue-700 mb-3"></h3>
+                <p class="text-md text-gray-700 mb-1 hidden" id="displayModelNumberContainer"><span class="font-semibold">Model:</span> <span id="displayModelNumber"></span></p>
+                <p class="text-md text-gray-700 mb-1 hidden" id="displayCustomerNameContainer"><span class="font-semibold">Customer:</span> <span id="displayCustomerName"></span></p>
+                <p class="text-md text-gray-700 mb-1 hidden" id="displayPhoneNumberContainer"><span class="font-semibold">Phone:</span> <span id="displayPhoneNumber"></span></p>
+                <p class="text-lg mb-2"><span class="font-semibold">Status:</span> <span id="displayStatus" class="text-green-600 font-bold"></span></p>
+                <p class="text-md text-gray-700"><span class="font-semibold">Last Updated:</span> <span id="displayLastUpdated"></span></p>
+                <p id="displayNotesContainer" class="text-md text-gray-700 mt-2 hidden"><span class="font-semibold">Notes:</span> <span id="displayNotes"></span></p>
+            </div>
+        </section>
+
+        <section id="admin-section" class="bg-white rounded-xl shadow-lg p-8">
+            <h2 class="text-3xl font-bold text-center text-purple-600 mb-6">Admin Access</h2>
+
+            <div id="admin-login" class="mb-8 p-6 bg-purple-50 rounded-lg border border-purple-200">
+                <h3 class="text-2xl font-semibold text-purple-700 mb-4">Admin Login</h3>
+                <input
+                    type="email"
+                    id="adminEmailInput"
+                    placeholder="Admin Email"
+                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none mb-4"
+                />
+                <input
+                    type="password"
+                    id="adminPasswordInput"
+                    placeholder="Admin Password"
+                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none mb-4"
+                />
+                <button
+                    id="adminLoginButton"
+                    class="w-full bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold shadow-md hover:bg-purple-700 transition-colors duration-200"
+                >
+                    Login as Admin
+                </button>
+            </div>
+
+            <div id="admin-dashboard" class="hidden">
+                <button
+                    id="adminLogoutButton"
+                    class="bg-red-500 text-white px-6 py-2 rounded-lg font-semibold shadow-md hover:bg-red-600 transition-colors duration-200 mb-6 float-right"
+                >
+                    Logout
+                </button>
+                <div class="clearfix"></div> <div class="mb-8 p-6 bg-purple-50 rounded-lg border border-purple-200">
+                    <h3 class="text-2xl font-semibold text-purple-700 mb-4">Add New Repair</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                        <input
+                            type="text"
+                            id="newRepairId"
+                            placeholder="Repair ID (e.g., MD12345)"
+                            class="p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                        />
+                        <input
+                            type="text"
+                            id="newDeviceName"
+                            placeholder="Device Name (e.g., iPhone 13 Pro)"
+                            class="p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                        />
+                        <input
+                            type="text"
+                            id="newModelNumber"
+                            placeholder="Model Number (Optional)"
+                            class="p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                        />
+                        <input
+                            type="text"
+                            id="newCustomerName"
+                            placeholder="Customer Name (Optional)"
+                            class="p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                        />
+                        <input
+                            type="tel"
+                            id="newPhoneNumber"
+                            placeholder="Phone Number (Optional)"
+                            class="p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                        />
+                        <select
+                            id="newStatus"
+                            class="p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                        >
+                            <option value="Received">Received</option>
+                            <option value="Diagnosing">Diagnosing</option>
+                            <option value="Repairing">Repairing</option>
+                            <option value="Ready for Pickup">Ready for Pickup</option>
+                            <option value="Completed">Completed</option>
+                            <option value="Cancelled">Cancelled</option>
+                        </select>
+                        <textarea
+                            id="newNotes"
+                            placeholder="Notes (e.g., Screen replaced, new battery installed)"
+                            rows="2"
+                            class="p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none col-span-full"
+                        ></textarea>
+                    </div>
+                    <button
+                        id="addRepairButton"
+                        class="w-full bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold shadow-md hover:bg-purple-700 transition-colors duration-200 flex items-center justify-center"
+                    >
+                        Add Repair
+                    </button>
+                </div>
+
+                <div class="mb-8 p-6 bg-gray-700 text-white rounded-lg border border-gray-600">
+                    <h3 class="text-2xl font-semibold text-white mb-4">New Repair Data (JSON View)</h3>
+                    <pre id="newRepairCodeView" class="bg-gray-800 p-4 rounded-lg text-sm overflow-x-auto font-mono">
+                        {
+                            "repairId": "...",
+                            "deviceName": "...",
+                            "modelNumber": "...",
+                            "customerName": "...",
+                            "phoneNumber": "...",
+                            "status": "...",
+                            "notes": "...",
+                            "lastUpdated": "...",
+                            "createdAt": "..."
+                        }
+                    </pre>
+                </div>
+
+                <h3 class="text-2xl font-semibold text-purple-700 mb-4">Existing Repairs</h3>
+                <div id="repairsList" class="space-y-4">
+                    <p class="text-center text-gray-600">Loading repairs...</p>
+                </div>
+
+                <div id="editRepairModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-[10000]">
+                    <div class="bg-white p-8 rounded-xl shadow-2xl max-w-lg w-full transform transition-all duration-300 scale-100">
+                        <h3 id="editModalTitle" class="text-2xl font-bold text-purple-700 mb-6 text-center">Edit Repair: </h3>
+                        <div class="space-y-4 mb-6">
+                            <div>
+                                <label for="editDeviceName" class="block text-gray-700 text-sm font-bold mb-2">Device Name:</label>
+                                <input
+                                    type="text"
+                                    id="editDeviceName"
+                                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label for="editModelNumber" class="block text-gray-700 text-sm font-bold mb-2">Model Number (Optional):</label>
+                                <input
+                                    type="text"
+                                    id="editModelNumber"
+                                    placeholder="Model Number (Optional)"
+                                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label for="editCustomerName" class="block text-gray-700 text-sm font-bold mb-2">Customer Name (Optional):</label>
+                                <input
+                                    type="text"
+                                    id="editCustomerName"
+                                    placeholder="Customer Name (Optional)"
+                                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label for="editPhoneNumber" class="block text-gray-700 text-sm font-bold mb-2">Phone Number (Optional):</label>
+                                <input
+                                    type="tel"
+                                    id="editPhoneNumber"
+                                    placeholder="Phone Number (Optional)"
+                                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label for="editStatus" class="block text-gray-700 text-sm font-bold mb-2">Status:</label>
+                                <select
+                                    id="editStatus"
+                                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                                >
+                                    <option value="Received">Received</option>
+                                    <option value="Diagnosing">Diagnosing</option>
+                                    <option value="Repairing">Repairing</option>
+                                    <option value="Ready for Pickup">Ready for Pickup</option>
+                                    <option value="Completed">Completed</option>
+                                    <option value="Cancelled">Cancelled</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="editNotes" class="block text-gray-700 text-sm font-bold mb-2">Notes:</label>
+                                <textarea
+                                    id="editNotes"
+                                    rows="3"
+                                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                                ></textarea>
+                            </div>
+                        </div>
+                        <div class="flex justify-end gap-4">
+                            <button
+                                id="cancelEditButton"
+                                class="bg-gray-300 text-gray-800 px-5 py-2 rounded-lg font-semibold hover:bg-gray-400 transition-colors duration-200"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                id="saveEditButton"
+                                class="bg-purple-600 text-white px-5 py-2 rounded-lg font-semibold shadow-md hover:bg-purple-700 transition-colors duration-200 flex items-center justify-center"
+                            >
+                                Save Changes
+                            </button>
+                        </div>
+                        <div class="mt-6 p-4 bg-gray-700 text-white rounded-lg border border-gray-600">
+                            <h4 class="text-xl font-semibold mb-3">Updated Data (JSON View)</h4>
+                            <pre id="editRepairCodeView" class="bg-gray-800 p-3 rounded-lg text-sm overflow-x-auto font-mono">
+                                </pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="mt-12 text-center text-gray-600 text-sm">
+        <p>&copy; <span id="currentYear"></span> Mobile Doctor. All rights reserved.</p>
+        <p>Your User ID: <span id="displayUserId" class="font-mono text-xs break-all"></span></p>
+    </footer>
+
+    <script type="module" src="script.js"></script>
+</body>
+</html>
