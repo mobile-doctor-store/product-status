@@ -1,0 +1,52 @@
+/* Custom styles and animations */
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f0f4f8; /* Light blue-gray background */
+}
+.animate-fadeIn {
+    animation: fadeIn 0.5s ease-out forwards;
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.animate-spin-slow {
+    animation: spin 3s linear infinite;
+}
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+/* Custom Message Box Styles */
+#customMessageBox {
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+}
+#customMessageBox > div {
+    animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+@keyframes popIn {
+    from { transform: scale(0.7); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+/* Specific styling for the admin dashboard list items */
+#repairsList .bg-gray-50 {
+    transition: all 0.2s ease-in-out;
+}
+#repairsList .bg-gray-50:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* General input and button focus styles for better UX */
+input:focus, select:focus, textarea:focus {
+    border-color: transparent; /* Remove default border focus */
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.4); /* Tailwind purple-500 equivalent shadow */
+    outline: none; /* Remove default outline */
+}
+
+/* For better handling of hidden elements with Tailwind's hidden class */
+.hidden {
+    display: none !important;
+}
